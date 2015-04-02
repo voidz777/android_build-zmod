@@ -106,6 +106,10 @@ else
     endif
 endif
 
+ifeq ($(TARGET_KERNEL_CUSTOM_RAMDISK),true)
+    $(shell sed -i "s;CONFIG_INITRAMFS_SOURCE=\"\.\.;CONFIG_INITRAMFS_SOURCE=\"source/\.\.;" $(KERNEL_PATH))
+endif
+
 ifeq ($(FULL_KERNEL_BUILD),true)
 
 KERNEL_HEADERS_INSTALL := $(KERNEL_OUT)/usr
@@ -131,9 +135,21 @@ endef
 
 ifeq ($(TARGET_ARCH),arm)
     ifneq ($(USE_CCACHE),)
-      ccache := $(ANDROID_BUILD_TOP)/prebuilts/misc/$(HOST_PREBUILT_TAG)/ccache/ccache
-      # Check that the executable is here.
-      ccache := $(strip $(wildcard $(ccache)))
+     # search executable
+      ifeq ($(USE_SYSTEM_CCACHE),)
+        ccache :=
+      else
+        ccache := $(shell which ccache)
+      endif
+      ifeq ($(ccache),)
+        ifneq ($(strip $(wildcard $(ANDROID_BUILD_TOP)/prebuilts/misc/$(HOST_PREBUILT_EXTRA_TAG)/ccache/ccache)),)
+          ccache := $(ANDROID_BUILD_TOP)/prebuilts/misc/$(HOST_PREBUILT_EXTRA_TAG)/ccache/ccache
+        else
+          ifneq ($(strip $(wildcard $(ANDROID_BUILD_TOP)/prebuilts/misc/$(HOST_PREBUILT_TAG)/ccache/ccache)),)
+            ccache := $(ANDROID_BUILD_TOP)/prebuilts/misc/$(HOST_PREBUILT_TAG)/ccache/ccache
+          endif
+        endif
+      endif
     endif
     ifneq ($(TARGET_KERNEL_CUSTOM_TOOLCHAIN),)
         ifeq ($(HOST_OS),darwin)
